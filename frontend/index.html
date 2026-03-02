@@ -1,0 +1,63 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MovieRec - 智能影视推荐</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-film"></i>
+            <span>MovieRec</span>
+        </div>
+        <div class="nav-search">
+            <input type="text" id="searchInput" placeholder="搜索影视、导演、演员...">
+            <button onclick="app.search()"><i class="fas fa-search"></i></button>
+        </div>
+        <div class="nav-links">
+            <a href="#" class="active" data-page="home">首页</a>
+            <a href="#" data-page="recommend">推荐</a>
+            <a href="#" data-page="movies">电影</a>
+            <a href="#" data-page="tv">电视剧</a>
+            <a href="#" data-page="anime">动漫</a>
+        </div>
+        <div class="nav-user" id="userSection">
+            <button class="btn-login" onclick="app.showLogin()">登录</button>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main id="mainContent">
+        <div class="loading">加载中...</div>
+    </main>
+
+    <!-- 影视详情模态框 -->
+    <div id="movieModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="app.closeModal()">&times;</span>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- 登录/注册模态框 -->
+<div id="loginModal" class="modal">
+    <!-- 内容由JS动态生成 -->
+</div>
+
+
+    <!-- Toast 提示 -->
+    <div id="toast" class="toast"></div>
+
+    <!-- 修正后的 JS 引用 -->
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/components.js"></script>
+    <script src="/static/js/app.js"></script>
+
+</body>
+</html>
