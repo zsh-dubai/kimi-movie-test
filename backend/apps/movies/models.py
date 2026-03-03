@@ -12,6 +12,7 @@ class Genre(models.Model):
 
 
 class Movie(models.Model):
+    tmdb_id = models.IntegerField(unique=True, null=True, blank=True, verbose_name='TMDB ID')
     MOVIE_TYPES = [('movie', '电影'), ('tv', '电视剧'), ('anime', '动漫')]
 
     title = models.CharField(max_length=200, verbose_name='标题')

@@ -69,7 +69,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'movie_db',
         'USER': 'root',
-        'PASSWORD': '123456',  # 修改为你的MySQL密码
+        'PASSWORD': 'z2668713014',  # 修改为你的MySQL密码
         'HOST': 'localhost',
         'PORT': '3306',
         'OPTIONS': {
@@ -136,3 +136,17 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }
+import os
+
+TMDB_API_KEY = os.environ.get('TMDB_API_KEY', '')
+TMDB_BASE_URL = 'https://api.themoviedb.org/3'
+TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p'
+TMDB_LANGUAGE = 'zh-CN'
+
+
+# 检查 TMDB Key 是否加载
+if TMDB_API_KEY:
+    print(f"[DEBUG] TMDB_API_KEY loaded: {TMDB_API_KEY[:10]}...")
+else:
+    print("[DEBUG] TMDB_API_KEY is EMPTY!")
+
