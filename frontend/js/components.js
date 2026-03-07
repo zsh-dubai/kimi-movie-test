@@ -1,24 +1,35 @@
 const Components = {
+
+    // 临时测试：移除 onerror
     movieCard(movie) {
-        // 使用电影ID作为占位符文字，避免中文编码问题
-        const posterUrl = movie.poster_url || `https://placehold.co/200x300/2a2a2a/FFF?text=Movie+${movie.id}`;
+        const posterUrl = movie.poster_url || '';
+
+        // 如果 poster_url 为空，用占位图
+        if (!posterUrl) {
+            return `
+                <div class="movie-card">
+                    <div style="width:200px;height:300px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;color:white;">
+                        ${movie.title}
+                    </div>
+                </div>
+            `;
+        }
 
         return `
             <div class="movie-card" onclick="app.showDetail(${movie.id})">
                 <img src="${posterUrl}" 
                      alt="${movie.title}" 
-                     loading="lazy"
-                     onerror="this.src='https://placehold.co/200x300/2a2a2a/FFF?text=Movie+${movie.id}'">
+                     style="width:200px;height:300px;object-fit:cover;">
                 <div class="movie-info">
                     <div class="movie-title">${movie.title}</div>
                     <div class="movie-meta">
-                        <span>${movie.release_date ? movie.release_date.split('-')[0] : '未知'}</span>
-                        <span class="rating"><i class="fas fa-star"></i> ${movie.rating || 'N/A'}</span>
+                        <span>${movie.rating || 'N/A'}</span>
                     </div>
                 </div>
             </div>
         `;
     },
+
 
     movieGrid(movies) {
         if (!movies || movies.length === 0) {
@@ -27,45 +38,77 @@ const Components = {
         return `<div class="movie-grid">${movies.map(m => this.movieCard(m)).join('')}</div>`;
     },
 
-    movieDetail(movie) {
-    const posterUrl = movie.poster_url || `https://placehold.co/300x450/2a2a2a/FFF?text=Movie+${movie.id}`;
+    movieDetail(movie, status = {}) {
+        const posterUrl = movie.poster_url || `https://placehold.co/300x450/2a2a2a/FFF?text=Movie+${movie.id}`;
 
-    return `
-        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem;">
-            <div>
-                <img src="${posterUrl}" 
-                     style="width: 100%; border-radius: 8px;"
-                     onerror="this.src='https://placehold.co/300x450/2a2a2a/FFF?text=Movie+${movie.id}'">
+        // 从 status 获取状态，不使用 movie 里的字段
+        const isFavorited = status.is_favorite || false;
+        const inWatchlist = status.in_watchlist || false;
+        const isWatched = status.is_watched || false;
+
+        // 根据状态显示不同的文字和样式
+        const favText = isFavorited ? '已收藏' : '收藏';
+        const favIcon = isFavorited ? 'fas fa-heart' : 'far fa-heart';
+        const favBg = isFavorited ? 'var(--primary)' : 'rgba(255,255,255,0.2)';
+
+        const watchText = inWatchlist ? '已想看' : '想看';
+        const watchBg = inWatchlist ? 'var(--primary)' : 'rgba(255,255,255,0.2)';
+
+        const watchedText = isWatched ? '已看' : '标记已看';
+        const watchedBg = isWatched ? 'var(--primary)' : 'rgba(255,255,255,0.2)';
+
+        // 判断是否有播放链接
+        const hasPlayUrl = movie.play_url && movie.play_url.trim() !== '';
+        const playButton = hasPlayUrl
+            ? `<a href="${movie.play_url}" target="_blank" style="text-decoration: none;">
+                 <button class="btn-primary" style="padding: 0.8rem 1.5rem; background: #e50914; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem;">
+                   <i class="fas fa-play"></i> 立即播放
+                 </button>
+               </a>`
+            : `<button disabled style="padding: 0.8rem 1.5rem; background: #555; color: #999; border: none; border-radius: 4px; cursor: not-allowed;">
+                 <i class="fas fa-play"></i> 暂无播放源
+               </button>`;
+
+        return `
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem;">
+                <div>
+                    <img src="${posterUrl}" 
+                         style="width: 100%; border-radius: 8px;"
+                         onerror="this.src='https://placehold.co/300x450/2a2a2a/FFF?text=Movie+${movie.id}'">
+                </div>
+                <div>
+                    <h2>${movie.title}</h2>
+                    <p style="color: var(--text-secondary);">${movie.original_title || ''}</p>
+                    <div style="margin: 1rem 0;">
+                        <span style="color: #ffd700;"><i class="fas fa-star"></i> ${movie.rating}</span>
+                        <span style="margin-left: 1rem; color: var(--text-secondary);">${movie.release_date}</span>
+                        <span style="margin-left: 1rem; color: var(--text-secondary);">${movie.duration}分钟</span>
+                    </div>
+                    <div style="margin: 1rem 0;">
+                        ${movie.genres ? movie.genres.map(g => `<span style="display: inline-block; padding: 0.25rem 0.75rem; background: rgba(255,255,255,0.1); border-radius: 20px; margin-right: 0.5rem; font-size: 0.85rem;">${g.name}</span>`).join('') : ''}
+                    </div>
+                    <p style="line-height: 1.8; color: var(--text-secondary);">${movie.description}</p>
+                    
+                    <!-- 三个操作按钮 -->
+                    <div style="margin-top: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <button class="btn-primary" onclick="app.toggleFavorite(${movie.id})" style="padding: 0.8rem 1.5rem; background: ${favBg}; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            <i class="${favIcon}"></i> <span id="fav-text-${movie.id}">${favText}</span>
+                        </button>
+                        <button class="btn-secondary" onclick="app.addToWatchlist(${movie.id})" style="padding: 0.8rem 1.5rem; background: ${watchBg}; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            <i class="fas fa-bookmark"></i> ${watchText}
+                        </button>
+                        <button class="btn-secondary" onclick="app.markAsWatched(${movie.id})" style="padding: 0.8rem 1.5rem; background: ${watchedBg}; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            <i class="fas fa-check"></i> ${watchedText}
+                        </button>
+                        
+                        <!-- 播放按钮 -->
+                        ${playButton}
+                    </div>
+                </div>
             </div>
-            <div>
-                <h2>${movie.title}</h2>
-                <p style="color: var(--text-secondary);">${movie.original_title || ''}</p>
-                <div style="margin: 1rem 0;">
-                    <span style="color: #ffd700;"><i class="fas fa-star"></i> ${movie.rating}</span>
-                    <span style="margin-left: 1rem; color: var(--text-secondary);">${movie.release_date}</span>
-                    <span style="margin-left: 1rem; color: var(--text-secondary);">${movie.duration}分钟</span>
-                </div>
-                <div style="margin: 1rem 0;">
-                    ${movie.genres ? movie.genres.map(g => `<span style="display: inline-block; padding: 0.25rem 0.75rem; background: rgba(255,255,255,0.1); border-radius: 20px; margin-right: 0.5rem; font-size: 0.85rem;">${g.name}</span>`).join('') : ''}
-                </div>
-                <p style="line-height: 1.8; color: var(--text-secondary);">${movie.description}</p>
-                
-                <!-- 三个操作按钮 -->
-                <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
-                    <button class="btn-primary" onclick="app.toggleFavorite(${movie.id})" style="padding: 0.8rem 1.5rem; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        <i class="fas fa-heart"></i> <span id="fav-text-${movie.id}">收藏</span>
-                    </button>
-                    <button class="btn-secondary" onclick="app.addToWatchlist(${movie.id})" style="padding: 0.8rem 1.5rem; background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        <i class="fas fa-bookmark"></i> 想看
-                    </button>
-                    <button class="btn-secondary" onclick="app.markAsWatched(${movie.id})" style="padding: 0.8rem 1.5rem; background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        <i class="fas fa-check"></i> 已看
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
+        `;
     },
+
 
     reviewItem(review) {
         return `
@@ -105,13 +148,14 @@ const Components = {
                     </div>
                     <div style="margin-bottom: 1rem;">
                         <label style="display: block; margin-bottom: 0.5rem;">评论内容</label>
-                        <textarea name="content" rows="4" style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.3); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; resize: vertical;" placeholder="写下你的观影感受..." required></textarea>
+                        <textarea name="content" rows="4" style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.3); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; resize: vertical; box-sizing: border-box;" placeholder="写下你的观影感受..." required></textarea>
                     </div>
                     <button type="submit" class="btn-primary">发表评论</button>
                 </form>
             </div>
         `;
     },
+
     userStats(stats) {
     return `
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem;">
@@ -131,27 +175,40 @@ const Components = {
     `;
 },
 
-historyItem(item) {
-    const movie = item.movie;
-    return `
-        <div style="display: flex; gap: 1rem; padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
-            <img src="${movie.poster_url || `https://placehold.co/100x150/2a2a2a/FFF?text=${movie.id}`}" 
-                 style="width: 80px; height: 120px; object-fit: cover; border-radius: 4px; cursor: pointer;"
+    historyItem(item) {
+        const movie = item.movie;
+        const interactionId = item.id;
+        return `
+            <div style="display: flex; gap: 1rem; padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: all 0.3s;" 
+                 onmouseover="this.style.background='rgba(255,255,255,0.05)'" 
+                 onmouseout="this.style.background='transparent'"
                  onclick="app.showDetail(${movie.id})">
-            <div style="flex: 1;">
-                <h4 style="margin-bottom: 0.5rem; cursor: pointer;" onclick="app.showDetail(${movie.id})">${movie.title}</h4>
-                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">
-                    ${movie.release_date ? movie.release_date.split('-')[0] : ''} · ${movie.genres ? movie.genres.map(g => g.name).join('/') : ''}
-                </p>
-                <p style="color: var(--text-secondary); font-size: 0.85rem;">
-                    ${item.interaction_type === 'watched' ? '已观看' : '浏览过'} · ${new Date(item.timestamp).toLocaleDateString()}
-                </p>
+                <img src="${movie.poster_url || `https://placehold.co/100x150/2a2a2a/FFF?text=${movie.id}`}" 
+                     style="width: 80px; height: 120px; object-fit: cover; border-radius: 4px;">
+                <div style="flex: 1;">
+                    <h4 style="margin-bottom: 0.5rem;">${movie.title}</h4>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">
+                        ${movie.release_date ? movie.release_date.split('-')[0] : ''} · ${movie.genres ? movie.genres.map(g => g.name).join('/') : ''}
+                    </p>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">
+                        ${item.interaction_type === 'favorite' ? '❤️ 收藏' : 
+                          item.interaction_type === 'watchlist' ? '🔖 想看' : 
+                          item.interaction_type === 'watched' ? '✅ 已看' : '👁️ 浏览过'} 
+                        · ${new Date(item.timestamp).toLocaleDateString()}
+                    </p>
+                </div>
+                <button onclick="event.stopPropagation(); app.removeInteraction(${interactionId})" 
+                        style="padding: 0.5rem 1rem; background: rgba(255,0,0,0.2); color: #ff6666; border: none; border-radius: 4px; cursor: pointer; align-self: center; opacity: 0; transition: opacity 0.3s;"
+                        onmouseover="this.style.opacity='1'"
+                        onmouseout="this.style.opacity='0'">
+                    移除
+                </button>
             </div>
-        </div>
-    `;
-},
+        `;
+    },
 
-tabButtons(activeTab) {
+
+    tabButtons(activeTab) {
         const tabs = [
             { id: 'history', label: '观看历史', icon: 'fa-history' },
             { id: 'favorites', label: '我的收藏', icon: 'fa-heart' },

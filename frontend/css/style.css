@@ -93,6 +93,107 @@ body {
     font-size: 0.9rem;
     transition: var(--transition);
 }
+/* 鼠标悬停卡片时显示移除按钮 */
+.history-card:hover button,
+[style*="cursor: pointer"]:hover button {
+    opacity: 1 !important;
+}
+/* 历史记录卡片样式 */
+.history-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    border: 1px solid transparent;
+}
+
+.history-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(5px);
+    border-color: rgba(229, 9, 20, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.history-poster {
+    width: 80px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s ease;
+}
+
+.history-card:hover .history-poster {
+    transform: scale(1.05);
+}
+
+.history-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.history-title {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.history-meta {
+    color: #999;
+    font-size: 0.9rem;
+    margin: 0 0 0.5rem 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.history-type {
+    color: #666;
+    font-size: 0.85rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.history-date {
+    color: #555;
+}
+
+/* 移除按钮 */
+.remove-btn {
+    padding: 0.5rem;
+    background: rgba(255, 0, 0, 0.1);
+    color: #ff6666;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.3s ease;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.history-card:hover .remove-btn {
+    opacity: 1;
+}
+
+.remove-btn:hover {
+    background: rgba(255, 0, 0, 0.3);
+    transform: scale(1.1);
+}
 
 .nav-links a:hover,
 .nav-links a.active {
@@ -215,6 +316,7 @@ main {
     border-radius: 8px;
     overflow: hidden;
     padding: 2rem;
+    overflow-y: auto;
 }
 
 .close {

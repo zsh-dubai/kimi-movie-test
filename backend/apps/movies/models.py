@@ -2,6 +2,7 @@ from django.db import models
 
 
 class Genre(models.Model):
+    tmdb_id = models.IntegerField(unique=True, null=True, blank=True)
     name = models.CharField(max_length=50, unique=True)
 
     class Meta:
@@ -33,6 +34,7 @@ class Movie(models.Model):
     director = models.CharField(max_length=200, blank=True, verbose_name='导演')
     cast = models.JSONField(default=list, verbose_name='演员阵容')
     play_links = models.JSONField(default=dict, verbose_name='播放链接')
+    play_url = models.URLField(max_length=500, blank=True, null=True, verbose_name='播放链接')
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

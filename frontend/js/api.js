@@ -1,4 +1,16 @@
-const API_BASE_URL = 'http://8.163.56.200/api';
+// 添加环境判断
+const getBaseUrl = () => {
+    // 本地开发环境判断
+    if (window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.protocol === 'file:') {  // 直接打开HTML文件
+        return 'http://127.0.0.1:8000/api';
+    }
+    // 生产环境
+    return 'http://8.163.56.200/api';
+};
+
+const API_BASE_URL = getBaseUrl();
 
 class API {
     static async request(endpoint, options = {}) {
@@ -75,6 +87,7 @@ class API {
     static getMovies(params = {}) {
         const query = new URLSearchParams(params).toString();
         return this.request(`/movies/?${query}`);
+
     }
 
     static getMovie(id) {
@@ -86,9 +99,13 @@ class API {
     }
 
     static toggleFavorite(movieId) {
-        return this.request(`/movies/${movieId}/toggle_favorite/`, {
-            method: 'POST'
+        return this.request('/interactions/my/toggle_favorite/', {
+            method: 'POST',
+            body: { movie: movieId }
         });
+    }
+    static checkInteractionStatus(movieId) {
+        return this.request(`/interactions/my/check_status/?movie=${movieId}`);
     }
 
     static rateMovie(movieId, rating) {
@@ -110,7 +127,7 @@ class API {
     }
 
     static addToWatchlist(movieId) {
-        return this.request('/interactions/my/', {
+        return this.request('/interactions/my/toggle_watchlist/',{
             method: 'POST',
             body: {
                 movie: movieId,
@@ -120,7 +137,7 @@ class API {
     }
 
     static markAsWatched(movieId) {
-        return this.request('/interactions/my/', {
+        return this.request('/interactions/my/toggle_watched/',{
             method: 'POST',
             body: {
                 movie: movieId,

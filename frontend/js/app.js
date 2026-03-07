@@ -88,13 +88,20 @@ class MovieApp {
 
 
     async loadMovies() {
+        //alert('开始加载电影！');
         const main = document.getElementById('mainContent');
         main.innerHTML = '<div class="loading">加载中...</div>';
-
         try {
-            const data = await API.getMovies();
-            main.innerHTML = Components.movieGrid(data.results);
+            const data = await API.getMovies({page_size: 100});
+            //alert('API返回了 ' + (data.length || data.results?.length) + ' 部电影');
+            const movies = Array.isArray(data) ? data : data.results;  // 兼容处理
+            //alert('第一部电影：' + movies[0]?.title);
+            const html = Components.movieGrid(movies);
+            //alert('生成的HTML长度：' + html.length);  // ← 加这行
+            main.innerHTML = Components.movieGrid(movies);
+            //alert('页面已更新！');  // ← 加这行
         } catch (error) {
+            alert('错误：' + error.message);
             main.innerHTML = `<div class="loading">加载失败: ${error.message}</div>`;
         }
     }
@@ -179,16 +186,43 @@ class MovieApp {
     }
 
     async loadCategory(type) {
-            const main = document.getElementById('mainContent');
-            main.innerHTML = '<div class="loading">加载中...</div>';
+        const main = document.getElementById('mainContent');
+        main.innerHTML = '<div class="loading">加载中...</div>';
 
-            try {
-                const data = await API.getMovies({ movie_type: type });
-                main.innerHTML = Components.movieGrid(data.results);
-            } catch (error) {
-                main.innerHTML = `<div class="loading">加载失败</div>`;
+        try {
+            let params = {};
+
+            if (type === 'anime') {
+                // 动漫 = 动画类型
+                params = { genre: '动画' };
+            } else if (type === 'tv') {
+                // 电视剧 - 暂无数据
+                main.innerHTML = '<div style="text-align: center; padding: 3rem; color: var(--text-secondary);"><i class="fas fa-tv" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>暂无电视剧数据<br><small>即将上线</small></div>';
+                return;
+            } else if (type === 'movie') {
+                // 电影 - 显示全部
+                params = {};
             }
+
+            const data = await API.getMovies(params);
+            const movies = Array.isArray(data) ? data : data.results;
+
+            // 添加分类标题
+            const titles = { movie: '电影', tv: '电视剧', anime: '动漫' };
+            main.innerHTML = `
+                <div style="padding: 1rem 0;">
+                    <h2 style="margin-bottom: 1.5rem;">
+                        <i class="fas fa-film" style="color: var(--primary);"></i> 
+                        ${titles[type] || '影视'}
+                    </h2>
+                    ${Components.movieGrid(movies)}
+                </div>
+            `;
+        } catch (error) {
+            main.innerHTML = `<div class="loading">加载失败: ${error.message}</div>`;
         }
+    }
+
 
 
     async search() {
@@ -210,21 +244,33 @@ class MovieApp {
     async showDetail(movieId) {
         const modal = document.getElementById('movieModal');
         const body = document.getElementById('modalBody');
-
         modal.classList.add('active');
         body.innerHTML = '<div class="loading">加载中...</div>';
 
         try {
+            // 先获取电影和评论（核心功能）
             const [movie, reviews] = await Promise.all([
                 API.getMovie(movieId),
                 API.getReviews(movieId)
             ]);
 
-            // 只显示当前电影的评论
+            // 单独获取状态（失败不影响主功能）
+            let status = { is_favorite: false, in_watchlist: false, is_watched: false };
+            if (this.currentUser) {
+                try {
+                    status = await API.checkInteractionStatus(movieId);
+                } catch (e) {
+                    console.log('获取状态失败:', e);
+                }
+            }
+
+            console.log('最终状态:', status);
+            this.currentMovieStatus = status;
+
             const movieReviews = reviews.results ? reviews.results.filter(r => r.movie === movieId || r.movie_title === movie.title) : [];
 
             body.innerHTML = `
-                ${Components.movieDetail(movie)}
+                ${Components.movieDetail(movie, status)}
                 <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1);">
                     <h3>用户评论 (${movieReviews.length})</h3>
                     ${Components.reviewList(movieReviews)}
@@ -236,9 +282,11 @@ class MovieApp {
                 this.recordView(movieId);
             }
         } catch (error) {
-            body.innerHTML = '<div class="loading">加载失败</div>';
+            console.error('Error:', error);
+            body.innerHTML = '<div class="loading">加载失败: ' + error.message + '</div>';
         }
     }
+
 
 
     async submitReview(e, movieId) {
@@ -407,12 +455,34 @@ class MovieApp {
         }
 
         try {
-            await API.addToWatchlist(movieId);
-            this.showToast('已添加到想看列表');
+            const result = await API.addToWatchlist(movieId);
+            this.showToast(result.message);
+
+            // 重新获取状态并刷新界面
+            const [movie, reviews, status] = await Promise.all([
+                API.getMovie(movieId),
+                API.getReviews(movieId),
+                API.checkInteractionStatus(movieId)
+            ]);
+            this.currentMovieStatus = status;
+            const movieReviews = reviews.results ? reviews.results.filter(r => r.movie === movieId || r.movie_title === movie.title) : [];
+
+            // 重新渲染详情页
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = `
+                ${Components.movieDetail(movie, status)}
+                <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <h3>用户评论 (${movieReviews.length})</h3>
+                    ${Components.reviewList(movieReviews)}
+                </div>
+                ${this.currentUser ? Components.reviewForm(movieId) : '<div style="margin-top: 2rem; text-align: center; color: var(--text-secondary);">登录后发表评论</div>'}
+            `;
+
         } catch (error) {
-            this.showToast('添加失败: ' + error.message, 'error');
+            this.showToast('操作失败: ' + error.message, 'error');
         }
     }
+
     async markAsWatched(movieId) {
         if (!this.currentUser) {
             this.showLogin();
@@ -420,12 +490,35 @@ class MovieApp {
         }
 
         try {
-            await API.markAsWatched(movieId);
-            this.showToast('已标记为观看');
+            const result = await API.markAsWatched(movieId);
+            this.showToast(result.message);
+
+            // 重新获取状态并刷新界面
+            const [movie, reviews, status] = await Promise.all([
+                API.getMovie(movieId),
+                API.getReviews(movieId),
+                API.checkInteractionStatus(movieId)
+            ]);
+
+            this.currentMovieStatus = status;
+            const movieReviews = reviews.results ? reviews.results.filter(r => r.movie === movieId || r.movie_title === movie.title) : [];
+
+
+            // 重新渲染详情页
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = `
+                ${Components.movieDetail(movie, status)}
+                <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <h3>用户评论 (${movieReviews.length})</h3>
+                    ${Components.reviewList(movieReviews)}
+                </div>
+                ${this.currentUser ? Components.reviewForm(movieId) : '<div style="margin-top: 2rem; text-align: center; color: var(--text-secondary);">登录后发表评论</div>'}
+            `;
         } catch (error) {
-            this.showToast('标记失败: ' + error.message, 'error');
+            this.showToast('操作失败: ' + error.message, 'error');
         }
     }
+
     async loadProfile(tab = 'history') {
         if (!this.currentUser) {
             this.showLogin();
@@ -438,29 +531,33 @@ class MovieApp {
         try {
             // 获取统计数据
             const [history, favorites, watchlist] = await Promise.all([
-                API.getHistory().catch(() => ({ results: [] })),
-                API.getFavorites().catch(() => ({ results: [] })),
-                API.getWatchlist().catch(() => ({ results: [] }))
+                API.getHistory().catch(() => []),
+                API.getFavorites().catch(() => []),
+                API.getWatchlist().catch(() => [])
             ]);
 
+            // 统一处理数据格式（可能是数组或 {results: [...]}）
+            const historyData = Array.isArray(history) ? history : (history.results || []);
+            const favoritesData = Array.isArray(favorites) ? favorites : (favorites.results || []);
+            const watchlistData = Array.isArray(watchlist) ? watchlist : (watchlist.results || []);
+
             const stats = {
-                watched: history.results ? history.results.filter(h => h.interaction_type === 'watched').length : 0,
-                favorites: favorites.results ? favorites.results.length : 0,
-                reviews: 0 // 可以从其他地方获取
+                watched: historyData.filter(h => h.interaction_type === 'watched').length,
+                favorites: favoritesData.length,
+                watchlist: watchlistData.length,
             };
 
-            let content = '';
             let data = [];
-
             switch(tab) {
                 case 'history':
-                    data = history.results || [];
+                    // 只显示 watched（已看），不显示 view（浏览）
+                    data = historyData.filter(h => h.interaction_type === 'watched');
                     break;
                 case 'favorites':
-                    data = favorites.results || [];
+                    data = favoritesData;
                     break;
                 case 'watchlist':
-                    data = watchlist.results || [];
+                    data = watchlistData;
                     break;
             }
 
@@ -484,6 +581,20 @@ class MovieApp {
             main.innerHTML = `<div class="loading">加载失败: ${error.message}</div>`;
         }
     }
+    async removeInteraction(interactionId) {
+        if (!confirm('确定要移除吗？')) return;
+
+        try {
+            await API.request(`/interactions/my/${interactionId}/`, { method: 'DELETE' });
+            this.showToast('已移除');
+            // 刷新当前标签页
+            const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab || 'history';
+            this.loadProfile(activeTab);
+        } catch (error) {
+            this.showToast('移除失败', 'error');
+        }
+}
+
 
 }
 

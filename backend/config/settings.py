@@ -3,9 +3,9 @@ pymysql.version_info = (2, 2, 1, "final", 0)  # 添加这行，伪装版本号
 pymysql.install_as_MySQLdb()
 import os
 from pathlib import Path
-
+from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+load_dotenv()
 SECRET_KEY = 'django-insecure-your-secret-key-here-change-in-production'
 DEBUG = True
 ALLOWED_HOSTS = ['*']
@@ -69,7 +69,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'movie_db',
         'USER': 'root',
-        'PASSWORD': 'z2668713014',  # 修改为你的MySQL密码
+        'PASSWORD': '123456',  # 修改为你的MySQL密码
         'HOST': 'localhost',
         'PORT': '3306',
         'OPTIONS': {
@@ -121,8 +121,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
+    #'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    #'PAGE_SIZE': 100,
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter',

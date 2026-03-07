@@ -1,8 +1,15 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from . import views
 
+# 创建 router
+router = DefaultRouter()
+
+# 注册 ViewSet
+# basename 用于反向解析 URL
+router.register(r'for-you', views.RecommendationViewSet, basename='for-you')
+router.register(r'trending', views.PopularRecommendationViewSet, basename='trending')
+
 urlpatterns = [
-    path('for-you/', views.for_you, name='for_you'),
-    path('trending/', views.trending_movies, name='trending'),
-    path('similar/<int:movie_id>/', views.similar_movies, name='similar'),
+    path('', include(router.urls)),
 ]
