@@ -48,19 +48,15 @@ class API {
         return this.request(`/interactions/reviews/?movie=${movieId}`);
     }
 
-    static getRecommendations() {
+   static getRecommendations() {
         return this.request('/recommendations/for-you/');
     }
-
     static getTrending() {
         return this.request('/recommendations/trending/');
     }
 
     static getSimilar(movieId) {
         return this.request(`/recommendations/similar/${movieId}/`);
-    }
-    static getReviews(movieId) {
-        return this.request(`/interactions/reviews/?movie=${movieId}`);
     }
 
     static createReview(data) {

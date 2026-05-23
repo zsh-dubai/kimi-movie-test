@@ -4,12 +4,19 @@ const Components = {
     movieCard(movie) {
         const posterUrl = movie.poster_url || '';
 
-        // 如果 poster_url 为空，用占位图
+        // 生成类型标签HTML
+        const genreTags = movie.genres && movie.genres.length > 0
+            ? movie.genres.map(g => `<span class="genre-tag">${g.name}</span>`).join('')
+            : '';
+
         if (!posterUrl) {
             return `
                 <div class="movie-card">
                     <div style="width:200px;height:300px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;color:white;">
                         ${movie.title}
+                    </div>
+                    <div class="movie-info">
+                        <div class="genre-tags">${genreTags}</div>
                     </div>
                 </div>
             `;
@@ -21,6 +28,7 @@ const Components = {
                      alt="${movie.title}" 
                      style="width:200px;height:300px;object-fit:cover;">
                 <div class="movie-info">
+                    <div class="genre-tags">${genreTags}</div>
                     <div class="movie-title">${movie.title}</div>
                     <div class="movie-meta">
                         <span>${movie.rating || 'N/A'}</span>
@@ -227,63 +235,6 @@ const Components = {
             </div>
         `;
     },
-    async loadProfile(tab = 'history') {
-        if (!this.currentUser) {
-            this.showLogin();
-            return;
-    }
 
-    const main = document.getElementById('mainContent');
-    main.innerHTML = '<div class="loading">加载中...</div>';
-
-    try {
-        // 获取统计数据
-        const [history, favorites, watchlist] = await Promise.all([
-            API.getHistory().catch(() => ({ results: [] })),
-            API.getFavorites().catch(() => ({ results: [] })),
-            API.getWatchlist().catch(() => ({ results: [] }))
-        ]);
-
-        const stats = {
-            watched: history.results ? history.results.filter(h => h.interaction_type === 'watched').length : 0,
-            favorites: favorites.results ? favorites.results.length : 0,
-            reviews: 0 // 可以从其他地方获取
-        };
-
-        let content = '';
-        let data = [];
-
-        switch(tab) {
-            case 'history':
-                data = history.results || [];
-                break;
-            case 'favorites':
-                data = favorites.results || [];
-                break;
-            case 'watchlist':
-                data = watchlist.results || [];
-                break;
-        }
-
-        main.innerHTML = `
-            <div style="padding: 2rem 0;">
-                <h2 style="margin-bottom: 2rem;">
-                    <i class="fas fa-user-circle" style="color: var(--primary);"></i> 
-                    个人中心
-                </h2>
-                ${Components.userStats(stats)}
-                ${Components.tabButtons(tab)}
-                <div>
-                    ${data.length > 0 
-                        ? data.map(item => Components.historyItem(item)).join('')
-                        : '<div style="text-align: center; padding: 3rem; color: var(--text-secondary);">暂无数据</div>'
-                    }
-                </div>
-            </div>
-        `;
-    } catch (error) {
-        main.innerHTML = `<div class="loading">加载失败: ${error.message}</div>`;
-    }
-}
 
 };

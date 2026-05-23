@@ -1,14 +1,10 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from . import views
+from .views import RecommendationViewSet, PopularRecommendationViewSet
 
-# 创建 router
 router = DefaultRouter()
-
-# 注册 ViewSet
-# basename 用于反向解析 URL
-router.register(r'for-you', views.RecommendationViewSet, basename='for-you')
-router.register(r'trending', views.PopularRecommendationViewSet, basename='trending')
+router.register(r'for-you', RecommendationViewSet, basename='recommendations')
+router.register(r'popular', PopularRecommendationViewSet, basename='popular')
 
 urlpatterns = [
     path('', include(router.urls)),

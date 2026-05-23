@@ -36,6 +36,148 @@ class MovieApp {
     }
 }
 
+    async loadProfile(tab = 'history') {
+        console.log('=== loadProfile 开始 ===');
+        console.log('currentUser:', this.currentUser);
+
+        if (!this.currentUser) {
+            console.log('currentUser 为空，显示登录');
+            this.showLogin();
+            return;
+        }
+
+        const main = document.getElementById('mainContent');
+        main.innerHTML = '<div class="loading">加载中...</div>';
+
+        try {
+            console.log('进入 try 块');
+
+        const [history, favorites, watchlist, profileData] = await Promise.all([
+            API.getHistory().catch(() => []),
+            API.getFavorites().catch(() => []),
+            API.getWatchlist().catch(() => []),
+            API.getRecommendations().catch(() => null)
+        ]);
+
+        const stats = {
+            watched: Array.isArray(history) ? history.filter(h => h.interaction_type === 'watched').length : 0,
+            favorites: Array.isArray(favorites) ? favorites.length : 0,
+            watchlist: Array.isArray(watchlist) ? watchlist.length : 0,
+            reviews: 0
+        };
+
+        let data = [];
+        switch(tab) {
+            case 'history': data = Array.isArray(history) ? history : []; break;
+            case 'favorites': data = Array.isArray(favorites) ? favorites : []; break;
+            case 'watchlist': data = Array.isArray(watchlist) ? watchlist : []; break;
+        }
+
+            let profilePanel = '';
+            try {
+                const userProfile = profileData?.user_profile;
+                const userType = profileData?.user_type;
+                const userTypeDesc = profileData?.user_type_description;
+
+                profilePanel = `
+                    <div style="
+                        background: linear-gradient(135deg, rgba(229, 9, 20, 0.1), rgba(0,0,0,0.3));
+                        border: 1px solid rgba(229, 9, 20, 0.2);
+                        border-radius: 12px;
+                        padding: 1.5rem;
+                        margin-bottom: 2rem;
+                    ">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3 style="margin: 0; font-size: 1.1em;">
+                                🎭 观影画像 
+                                <span style="color: var(--text-secondary); font-size: 0.8em; font-weight: normal;">
+                                    ${userTypeDesc || ''}
+                                </span>
+                            </h3>
+                            <span style="
+                                background: ${userType === 'active' ? '#4CAF50' : userType === 'warm_start' ? '#FF9800' : '#2196F3'};
+                                color: white;
+                                padding: 2px 8px;
+                                border-radius: 10px;
+                                font-size: 0.75em;
+                            ">
+                                ${userType === 'active' ? '成熟用户' : userType === 'warm_start' ? '新用户' : '冷启动'}
+                            </span>
+                        </div>
+                        
+                        <div style="margin-bottom: 1.5rem;">
+                            <h4 style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 0.8rem;">类型偏好</h4>
+                            ${userProfile?.favorite_genres?.length ? userProfile.favorite_genres.map(g => `
+                                <div style="margin-bottom: 0.6rem;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem;">
+                                        <span style="font-size: 0.85em;">${g.genre}</span>
+                                        <span style="font-size: 0.8em; color: #aaa;">${g.count}部 · ${g.percentage}%</span>
+                                    </div>
+                                    <div style="
+                                        height: 6px;
+                                        background: rgba(255,255,255,0.1);
+                                        border-radius: 3px;
+                                        overflow: hidden;
+                                    ">
+                                        <div style="
+                                            width: ${g.percentage}%;
+                                            height: 100%;
+                                            background: linear-gradient(90deg, #e50914, #ff6b6b);
+                                            border-radius: 3px;
+                                            transition: width 0.5s ease;
+                                        "></div>
+                                    </div>
+                                </div>
+                            `).join('') : '<div style="color: #666; font-size: 0.85em;">暂无类型偏好数据</div>'}
+                        </div>
+        
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                            <div style="text-align: center; padding: 0.8rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                                <div style="font-size: 1.5em; font-weight: bold; color: #e50914;">${stats.watched}</div>
+                                <div style="font-size: 0.8em; color: #888; margin-top: 0.2rem;">已观影</div>
+                            </div>
+                            <div style="text-align: center; padding: 0.8rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                                <div style="font-size: 1.5em; font-weight: bold; color: #e50914;">${userProfile?.avg_user_rating || 0}</div>
+                                <div style="font-size: 0.8em; color: #888; margin-top: 0.2rem;">平均评分</div>
+                            </div>
+                            <div style="text-align: center; padding: 0.8rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                                <div style="font-size: 1.5em; font-weight: bold; color: #e50914;">${stats.favorites}</div>
+                                <div style="font-size: 0.8em; color: #888; margin-top: 0.2rem;">收藏</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (e) {
+                console.warn('画像面板渲染失败:', e);
+                profilePanel = '';
+            }
+
+            const userStatsHtml = typeof Components?.userStats === 'function' ? Components.userStats(stats) : '';
+            const tabButtonsHtml = typeof Components?.tabButtons === 'function' ? Components.tabButtons(tab) : '';
+
+            const itemsHtml = data.length > 0 && typeof Components?.historyItem === 'function'
+                ? data.map(item => Components.historyItem(item)).join('')
+                : '<div style="text-align: center; padding: 3rem; color: var(--text-secondary);">暂无数据</div>';
+
+            main.innerHTML = `
+                <div style="padding: 2rem 0;">
+                    <h2 style="margin-bottom: 2rem;">
+                        <i class="fas fa-user-circle" style="color: var(--primary);"></i> 
+                        个人中心
+                    </h2>
+                    ${profilePanel}
+                    ${userStatsHtml}
+                    ${tabButtonsHtml}
+                    <div>${itemsHtml}</div>
+                </div>
+            `;
+
+            console.log('main.innerHTML 已更新');
+        } catch (error) {
+            console.error('loadProfile 致命错误:', error);
+            main.innerHTML = `<div class="loading">加载失败: ${error.message}</div>`;
+        }
+    }
 
     bindEvents() {
         document.querySelectorAll('.nav-links a').forEach(link => {
@@ -63,7 +205,7 @@ class MovieApp {
         if (this.currentUser) {
             section.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 1rem;">
-                    <a href="#" onclick="app.loadProfile(); return false;" style="color: white; text-decoration: none;">
+                    <a href="#" onclick="app.navigate('profile'); return false;" style="color: white; text-decoration: none;">
                         ${this.currentUser.nickname || this.currentUser.username}
                     </a>
                     <button class="btn-login" onclick="app.logout()">退出</button>
@@ -109,46 +251,146 @@ class MovieApp {
         const main = document.getElementById('mainContent');
         main.innerHTML = '<div class="loading">加载推荐中...</div>';
 
-        try {
-            const data = await API.getRecommendations();
-            main.innerHTML = `
-                <div style="padding: 2rem 0;">
-                    <h2 style="margin-bottom: 1.5rem;">
-                        <i class="fas fa-magic" style="color: var(--primary);"></i> 
-                        为你推荐
-                        <small style="color: var(--text-secondary); font-size: 0.6em; margin-left: 1rem;">
-                            ${data.algorithm === 'popular_for_new_user' ? '热门推荐' : '个性化推荐'}
-                        </small>
-                    </h2>
-                    ${Components.movieGrid(data.recommendations)}
-                </div>
-            `;
-        } catch (error) {
-            main.innerHTML = `<div class="loading">加载失败: ${error.message}</div>`;
-        }
-    }
-    async loadRecommendations() {
-        const main = document.getElementById('mainContent');
-        main.innerHTML = '<div class="loading">加载推荐中...</div>';
 
         try {
             const data = await API.getRecommendations();
+        // 在 main.innerHTML 的标题后面添加
+            const profileHtml = data.user_profile ? `
+                <div style="
+                    background: rgba(255,255,255,0.05);
+                    padding: 1rem;
+                    border-radius: 8px;
+                    margin-bottom: 1.5rem;
+                ">
+                    <h3 style="margin-bottom: 0.5rem; font-size: 1em;">🎭 你的观影画像</h3>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        ${data.user_profile.favorite_genres.map(g => `
+                            <div style="
+                                background: rgba(76, 175, 80, 0.2);
+                                padding: 4px 12px;
+                                border-radius: 12px;
+                                font-size: 0.85em;
+                            ">
+                                ${g.genre} ${g.percentage}%
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div style="margin-top: 0.5rem; color: #888; font-size: 0.8em;">
+                        平均评分: ${data.user_profile.avg_user_rating} · 
+                        已观影: ${data.user_profile.total_watched || 0}部
+                    </div>
+                </div>
+            ` : '';
+            // 构建带解释的推荐卡片
+            const recommendationsHtml = data.recommendations.map(item => {
+                const movie = item.movie;
+                const algoColors = {
+                    'content_based': '#4CAF50',
+                    'collaborative_filtering': '#2196F3',
+                    'cold_start_popular': '#FF9800'
+                };
+                const algoNames = {
+                    'content_based': '基于内容',
+                    'collaborative_filtering': '协同过滤',
+                    'cold_start_popular': '热门推荐'
+                };
+
+                return `
+                    <div class="recommendation-card" style="position: relative; margin-bottom: 1rem;">
+                        ${Components.movieCard(movie)}
+                        <div style="
+                            position: absolute;
+                            top: 10px;
+                            right: 10px;
+                            background: ${algoColors[item.algorithm] || '#666'};
+                            color: white;
+                            padding: 4px 8px;
+                            border-radius: 4px;
+                            font-size: 0.75em;
+                            font-weight: bold;
+                        ">
+                            ${algoNames[item.algorithm] || item.algorithm}
+                        </div>
+                        <div style="
+                            background: rgba(0,0,0,0.8);
+                            padding: 10px;
+                            border-radius: 0 0 8px 8px;
+                            margin-top: -5px;
+                        ">
+                            <div style="color: #aaa; font-size: 0.85em; margin-bottom: 5px;">
+                                💡 ${item.explanation}
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <div style="
+                                    flex: 1;
+                                    height: 4px;
+                                    background: rgba(255,255,255,0.2);
+                                    border-radius: 2px;
+                                ">
+                                    <div style="
+                                        width: ${(item.confidence * 100)}%;
+                                        height: 100%;
+                                        background: linear-gradient(90deg, #4CAF50, #8BC34A);
+                                        border-radius: 2px;
+                                        transition: width 0.5s;
+                                    "></div>
+                                </div>
+                                <span style="color: #888; font-size: 0.8em;">
+                                    ${(item.confidence * 100).toFixed(0)}%
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
             main.innerHTML = `
                 <div style="padding: 2rem 0;">
-                    <h2 style="margin-bottom: 1.5rem;">
+                    <h2 style="margin-bottom: 0.5rem;">
                         <i class="fas fa-magic" style="color: var(--primary);"></i> 
                         为你推荐
                         <small style="color: var(--text-secondary); font-size: 0.6em; margin-left: 1rem;">
-                            ${data.algorithm === 'popular_for_new_user' ? '热门推荐' : '个性化推荐'}
+                            🎯 个性化推荐
                         </small>
                     </h2>
-                    ${Components.movieGrid(data.recommendations)}
+                    <div style="margin-bottom: 1.5rem; color: var(--text-secondary); font-size: 0.9em;">
+                        ${data.user_type_description} · 
+                        算法分布：内容推荐 ${(data.algorithm_breakdown.content_based * 100).toFixed(0)}% · 
+                        协同过滤 ${(data.algorithm_breakdown.collaborative_filtering * 100).toFixed(0)}% · 
+                        热门补充 ${(data.algorithm_breakdown.cold_start_popular * 100).toFixed(0)}%
+                    </div>
+                    <div class="movie-grid">
+                        ${recommendationsHtml}
+                    </div>
                 </div>
             `;
         } catch (error) {
+            console.error('推荐加载错误:', error);
             main.innerHTML = `<div class="loading">加载失败: ${error.message}</div>`;
         }
     }
+
+
+
+    // 添加辅助方法
+    getAlgorithmColor(algorithm) {
+        const colors = {
+            'cold_start_popular': '#FF9800',
+            'content_based': '#4CAF50',
+            'collaborative_filtering': '#2196F3'
+        };
+        return colors[algorithm] || '#666';
+    }
+
+    getAlgorithmName(algorithm) {
+        const names = {
+            'cold_start_popular': '热门推荐',
+            'content_based': '基于内容',
+            'collaborative_filtering': '协同过滤'
+        };
+        return names[algorithm] || algorithm;
+    }
+
 
     async navigate(page) {
         console.log('导航到:', page);  // 添加调试信息
@@ -173,6 +415,11 @@ class MovieApp {
                 } else {
                     this.showLogin();
                 }
+                break;
+            case 'profile':
+                console.log('准备调用 loadProfile');  //
+                this.loadProfile();
+                console.log('loadProfile 已调用');    //
                 break;
             case 'movies':
             case 'tv':
@@ -235,7 +482,7 @@ class MovieApp {
         try {
             const data = await API.searchMovies(query);
             main.innerHTML = `<h2 style="margin-bottom: 1rem;">搜索结果: "${query}"</h2>` +
-                           Components.movieGrid(data.results);
+                           Components.movieGrid(data.results || data);
         } catch (error) {
             main.innerHTML = `<div class="loading">搜索失败</div>`;
         }
@@ -519,68 +766,7 @@ class MovieApp {
         }
     }
 
-    async loadProfile(tab = 'history') {
-        if (!this.currentUser) {
-            this.showLogin();
-            return;
-        }
 
-        const main = document.getElementById('mainContent');
-        main.innerHTML = '<div class="loading">加载中...</div>';
-
-        try {
-            // 获取统计数据
-            const [history, favorites, watchlist] = await Promise.all([
-                API.getHistory().catch(() => []),
-                API.getFavorites().catch(() => []),
-                API.getWatchlist().catch(() => [])
-            ]);
-
-            // 统一处理数据格式（可能是数组或 {results: [...]}）
-            const historyData = Array.isArray(history) ? history : (history.results || []);
-            const favoritesData = Array.isArray(favorites) ? favorites : (favorites.results || []);
-            const watchlistData = Array.isArray(watchlist) ? watchlist : (watchlist.results || []);
-
-            const stats = {
-                watched: historyData.filter(h => h.interaction_type === 'watched').length,
-                favorites: favoritesData.length,
-                watchlist: watchlistData.length,
-            };
-
-            let data = [];
-            switch(tab) {
-                case 'history':
-                    // 只显示 watched（已看），不显示 view（浏览）
-                    data = historyData.filter(h => h.interaction_type === 'watched');
-                    break;
-                case 'favorites':
-                    data = favoritesData;
-                    break;
-                case 'watchlist':
-                    data = watchlistData;
-                    break;
-            }
-
-            main.innerHTML = `
-                <div style="padding: 2rem 0;">
-                    <h2 style="margin-bottom: 2rem;">
-                        <i class="fas fa-user-circle" style="color: var(--primary);"></i> 
-                        个人中心
-                    </h2>
-                    ${Components.userStats(stats)}
-                    ${Components.tabButtons(tab)}
-                    <div>
-                        ${data.length > 0 
-                            ? data.map(item => Components.historyItem(item)).join('')
-                            : '<div style="text-align: center; padding: 3rem; color: var(--text-secondary);">暂无数据</div>'
-                        }
-                    </div>
-                </div>
-            `;
-        } catch (error) {
-            main.innerHTML = `<div class="loading">加载失败: ${error.message}</div>`;
-        }
-    }
     async removeInteraction(interactionId) {
         if (!confirm('确定要移除吗？')) return;
 

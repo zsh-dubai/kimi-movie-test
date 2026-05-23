@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class Genre(models.Model):
@@ -24,7 +25,6 @@ class Movie(models.Model):
 
     release_date = models.DateField(null=True, blank=True, verbose_name='上映日期')
     duration = models.IntegerField(null=True, blank=True, verbose_name='时长(分钟)')
-    rating = models.FloatField(default=0, verbose_name='评分')
     rating_count = models.IntegerField(default=0, verbose_name='评分人数')
 
     poster_url = models.URLField(max_length=500, blank=True, verbose_name='海报')
@@ -38,6 +38,19 @@ class Movie(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    rating = models.DecimalField(
+        max_digits=3,  # 最大位数（如 10.0）
+        decimal_places=1,  # 小数位数
+        default=0.0,
+        validators=[MinValueValidator(0.0), MaxValueValidator(10.0)],
+        verbose_name='评分'
+    )
+
+    def save(self, *args, **kwargs):
+        # 入库前强制四舍五入
+        if self.rating:
+            self.rating = round(float(self.rating), 1)
+        super().save(*args, **kwargs)
 
     class Meta:
         db_table = 'movies'

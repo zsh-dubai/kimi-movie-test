@@ -7,31 +7,25 @@ from django.db.models import Avg, Count, Q
 from .models import Movie, Genre
 from .serializers import MovieSerializer, MovieDetailSerializer, GenreSerializer
 
+
 class MovieViewSet(viewsets.ModelViewSet):
     queryset = Movie.objects.all()
-    print(f"=" * 50)
-    #print(f"类加载时查询到的电影数量: {queryset.count()}")
-    #for m in queryset.order_by('id')[:10]:
-        #print(f"  id={m.id}, title={m.title}")
-    print(f"=" * 50)
     serializer_class = MovieSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend,  filters.OrderingFilter]
     filterset_fields = ['movie_type', 'genres']
     search_fields = ['title', 'original_title', 'description', 'director']
     ordering_fields = ['rating', 'release_date', 'created_at']
 
     def list(self, request, *args, **kwargs):
-        print("=" * 50)
-        print("list 方法被调用了！")
         queryset = self.get_queryset()
         print(f"查询到 {queryset.count()} 部电影")
         for m in queryset[:5]:
             print(f"  {m.id}: {m.title}")
-        print("=" * 50)
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
     def get_serializer_class(self):
         if self.action == 'retrieve':
             return MovieDetailSerializer
@@ -42,24 +36,33 @@ class MovieViewSet(viewsets.ModelViewSet):
             review_count=Count('reviews'),
             avg_rating=Avg('reviews__rating')
         )
-        #print(f"API请求时查询: {queryset.count()} 部")
-        #for m in queryset.order_by('id')[:10]:
-            #print(f"  API查询: id={m.id}, title={m.title}")
+
+        # 搜索优先级最高
+        search_query = self.request.query_params.get('search', '').strip()
+        if search_query:
+            queryset = queryset.filter(
+                Q(title__icontains=search_query) |
+                Q(original_title__icontains=search_query) |
+                Q(description__icontains=search_query) |
+                Q(director__icontains=search_query)
+            ).distinct()
+            print(f"🔍 搜索 '{search_query}'，找到 {queryset.count()} 条")
+            return queryset
+
+        # 常规过滤
         genre = self.request.query_params.get('genre')
         if genre:
             queryset = queryset.filter(genres__name=genre)
+
         movie_type = self.request.query_params.get('movie_type')
         if movie_type:
             if movie_type == 'anime':
-                # 动漫 = 动画类型
                 queryset = queryset.filter(genres__name='动画')
             elif movie_type == 'movie':
-                # 电影 = 排除电视剧类型（如果有的话）
-                # 暂时显示所有，因为目前只有电影数据
                 pass
             elif movie_type == 'tv':
-                # 电视剧 - 当前数据库可能没有，先返回空
                 queryset = queryset.none()
+
         year = self.request.query_params.get('year')
         if year:
             queryset = queryset.filter(release_date__year=year)
