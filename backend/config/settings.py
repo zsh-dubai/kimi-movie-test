@@ -1,5 +1,5 @@
 import pymysql
-pymysql.version_info = (2, 2, 1, "final", 0)  # 添加这行，伪装版本号
+pymysql.version_info = (2, 2, 1, "final", 0)
 pymysql.install_as_MySQLdb()
 import os
 from pathlib import Path
@@ -47,7 +47,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR.parent / 'frontend'],  # 添加这行
+        'DIRS': [BASE_DIR.parent / 'frontend'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -69,7 +69,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'movie_db',
         'USER': 'root',
-        'PASSWORD': '123456',  # 修改为你的MySQL密码
+        'PASSWORD': '123456',
         'HOST': 'localhost',
         'PORT': '3306',
         'OPTIONS': {
@@ -96,6 +96,7 @@ USE_TZ = True
 # 静态文件
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [
+    BASE_DIR / 'static',
     BASE_DIR.parent / 'frontend',
 ]
 
@@ -116,7 +117,6 @@ CORS_ALLOW_CREDENTIALS = True
 # REST Framework配置
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [

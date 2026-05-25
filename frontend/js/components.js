@@ -8,7 +8,9 @@ const Components = {
         const genreTags = movie.genres && movie.genres.length > 0
             ? movie.genres.map(g => `<span class="genre-tag">${g.name}</span>`).join('')
             : '';
-
+        const rankBadge = typeof movie.rank === 'number'
+            ? `<div class="rank-badge ${movie.rank <= 3 ? 'top-' + movie.rank : ''}">${movie.rank}</div>`
+            : '';
         if (!posterUrl) {
             return `
                 <div class="movie-card">
@@ -24,6 +26,7 @@ const Components = {
 
         return `
             <div class="movie-card" onclick="app.showDetail(${movie.id})">
+                ${rankBadge}
                 <img src="${posterUrl}" 
                      alt="${movie.title}" 
                      style="width:200px;height:300px;object-fit:cover;">
@@ -44,6 +47,30 @@ const Components = {
             return '<div class="loading">暂无数据</div>';
         }
         return `<div class="movie-grid">${movies.map(m => this.movieCard(m)).join('')}</div>`;
+    },
+
+    leaderboard(title, movies) {
+        if (!movies || movies.length === 0) {
+            return `<div class="leaderboard-section">
+                <h2 class="section-title">${title}</h2>
+                <div class="loading">暂无数据</div>
+            </div>`;
+        }
+
+        // 给电影加排名标记
+        const rankedMovies = movies.map((movie, index) => ({
+            ...movie,
+            rank: index + 1
+        }));
+
+        return `
+            <div class="leaderboard-section">
+                <h2 class="section-title">${title}</h2>
+                <div class="movie-grid leaderboard-grid">
+                    ${rankedMovies.map(m => this.movieCard(m)).join('')}
+                </div>
+            </div>
+        `;
     },
 
     movieDetail(movie, status = {}) {

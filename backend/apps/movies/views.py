@@ -142,6 +142,23 @@ class MovieViewSet(viewsets.ModelViewSet):
                 'movies': MovieSerializer(movies, many=True).data
             })
         return Response(data)
+    @action(detail=False, methods=['get'])
+    def top_rated(self, request):
+        """评分排行榜 - 按评分降序，取前20部"""
+        # 从数据库查询：按 rating 降序，rating 相同则按 rating_count 降序
+        top_movies = Movie.objects.order_by('-rating', '-rating_count')[:20]
+        # 用序列化器转成 JSON 格式
+        serializer = self.get_serializer(top_movies, many=True)
+        # 返回给前端
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def most_popular(self, request):
+        """热度排行榜 - 按评分人数降序，取前20部"""
+        # 热度 = 评分人数多，其次评分高
+        popular = Movie.objects.order_by('-rating_count', '-rating')[:20]
+        serializer = self.get_serializer(popular, many=True)
+        return Response(serializer.data)
 
 
 class GenreViewSet(viewsets.ReadOnlyModelViewSet):

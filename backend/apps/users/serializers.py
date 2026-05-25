@@ -8,7 +8,7 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'nickname', 'avatar', 'email', 'gender', 'birthday', 'bio']
+        fields = ['id', 'username', 'nickname', 'avatar', 'gender', 'birthday', 'bio']
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):
@@ -16,10 +16,18 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'password', 'nickname', 'email']
+        fields = ['username', 'password', 'nickname']
 
     def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
+        validated_data.pop('email', None)
+        username = validated_data.pop('username')
+        password = validated_data.pop('password')
+        nickname = validated_data.pop('nickname', '')
+        user = User.objects.create_user(
+            username=username,
+            password=password,
+            nickname=nickname
+        )
         return user
 
 

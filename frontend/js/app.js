@@ -183,10 +183,10 @@ class MovieApp {
         document.querySelectorAll('.nav-links a').forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
-                e.stopPropagation();  // 添加这行
+                e.stopPropagation();
 
                 const page = e.target.dataset.page;
-                console.log('点击导航:', page);  // 添加调试信息
+                console.log('点击导航:', page);
 
                 if (page) {
                     this.navigate(page);
@@ -427,6 +427,9 @@ class MovieApp {
                 const typeMap = { movies: 'movie', tv: 'tv', anime: 'anime' };
                 await this.loadCategory(typeMap[page]);
                 break;
+            case 'leaderboard':
+                this.showLeaderboard();
+                break;
             default:
                 this.loadMovies();
         }
@@ -485,6 +488,26 @@ class MovieApp {
                            Components.movieGrid(data.results || data);
         } catch (error) {
             main.innerHTML = `<div class="loading">搜索失败</div>`;
+        }
+    }
+    async showLeaderboard() {
+        const main = document.getElementById('mainContent');
+        main.innerHTML = '<div class="loading">加载排行榜...</div>';
+
+        try {
+            const [topRated, mostPopular] = await Promise.all([
+                API.getTopRated(),
+                API.getMostPopular()
+            ]);
+
+            main.innerHTML = `
+                <div class="leaderboard-page">
+                    ${Components.leaderboard('🏆 评分排行榜', topRated)}
+                    ${Components.leaderboard('🔥 热度排行榜', mostPopular)}
+                </div>
+            `;
+        } catch (error) {
+            main.innerHTML = '<div class="loading">加载失败</div>';
         }
     }
 
@@ -624,7 +647,6 @@ class MovieApp {
                 username: form.username.value,
                 password: form.password.value,
                 nickname: form.nickname.value,
-                email: form.email.value
             });
 
             this.showToast('注册成功，请登录');
@@ -643,7 +665,6 @@ class MovieApp {
                 <form id="registerForm" onsubmit="app.handleRegister(event)">
                     <input type="text" name="username" placeholder="用户名" required>
                     <input type="text" name="nickname" placeholder="昵称" required>
-                    <input type="email" name="email" placeholder="邮箱" required>
                     <input type="password" name="password" placeholder="密码" required>
                     <button type="submit" class="btn-primary">注册</button>
                 </form>

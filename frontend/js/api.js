@@ -93,6 +93,13 @@ class API {
     static searchMovies(query) {
         return this.request(`/movies/?search=${encodeURIComponent(query)}`);
     }
+    static getTopRated() {
+        return this.request('/movies/top_rated/');
+    }
+
+    static getMostPopular() {
+        return this.request('/movies/most_popular/');
+    }
 
     static toggleFavorite(movieId) {
         return this.request('/interactions/my/toggle_favorite/', {
